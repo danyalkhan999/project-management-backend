@@ -1,50 +1,55 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { User, UserDocument } from './user.schema';
+import { DbService } from '../db/db.service';
+import { users, UserSelect } from './user.schema';
+import { eq } from 'drizzle-orm';
 
 @Injectable()
 export class UsersService {
-  constructor(
-    @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
-  ) {}
+  constructor(private readonly dbService: DbService) {}
 
-  async create(name: string, email: string, passwordHash: string): Promise<UserDocument> {
-    const user = new this.userModel({
+  private get db() {
+    return this.dbService.database;
+  }
+
+  async create(name: string, email: string, passwordHash: string): Promise<UserSelect> {
+    const [user] = await this.db.insert(users).values({
       name,
       email: email.toLowerCase(),
       passwordHash,
       role: 'member',
       plan: 'free',
       isActive: true,
-    });
-    return user.save();
+    }).returning();
+    return user;
   }
 
-  async findByEmail(email: string): Promise<UserDocument | null> {
-    return this.userModel.findOne({ email: email.toLowerCase() }).exec();
+  async findByEmail(email: string): Promise<UserSelect | null> {
+    const [user] = await this.db.select().from(users).where(eq(users.email, email.toLowerCase())).limit(1);
+    return user || null;
   }
 
-  async findById(id: string): Promise<UserDocument | null> {
-    return this.userModel.findById(id).exec();
+  async findById(id: string): Promise<UserSelect | null> {
+    const [user] = await this.db.select().from(users).where(eq(users.id, id)).limit(1);
+    return user || null;
   }
 
-  async updateRefreshTokenHash(id: string, hash: string): Promise<UserDocument | null> {
-    return this.userModel.findByIdAndUpdate(
-      id,
-      { refreshTokenHash: hash },
-      { returnDocument: 'after' },
-    ).exec();
+  async updateRefreshTokenHash(id: string, hash: string): Promise<UserSelect | null> {
+    const [user] = await this.db.update(users)
+      .set({ refreshTokenHash: hash })
+      .where(eq(users.id, id))
+      .returning();
+    return user || null;
   }
 
   async clearRefreshTokenHash(id: string): Promise<void> {
-    await this.userModel.findByIdAndUpdate(id, { $unset: { refreshTokenHash: 1 } }).exec();
+    await this.db.update(users)
+      .set({ refreshTokenHash: null })
+      .where(eq(users.id, id));
   }
 
   async deactivate(id: string): Promise<void> {
-    await this.userModel.findByIdAndUpdate(
-      id,
-      { isActive: false, $unset: { refreshTokenHash: 1 } },
-    ).exec();
+    await this.db.update(users)
+      .set({ isActive: false, refreshTokenHash: null })
+      .where(eq(users.id, id));
   }
 }

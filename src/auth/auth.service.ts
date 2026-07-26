@@ -1,6 +1,6 @@
 import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
-import { UserDocument } from '../users/user.schema';
+import { UserSelect } from '../users/user.schema';
 import { RegisterDto } from './register.dto';
 import { LoginDto } from './login.dto';
 import { RefreshDto } from './refresh.dto';
@@ -37,9 +37,9 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  private mapUser(user: UserDocument) {
+  private mapUser(user: UserSelect) {
     return {
-      id: user._id.toString(),
+      id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
@@ -59,10 +59,10 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(password, 10);
     const savedUser = await this.usersService.create(name, normalizedEmail, passwordHash);
 
-    const tokens = await this.generateTokens(savedUser._id.toString(), savedUser.email, savedUser.role);
+    const tokens = await this.generateTokens(savedUser.id, savedUser.email, savedUser.role);
 
     const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 10);
-    await this.usersService.updateRefreshTokenHash(savedUser._id.toString(), refreshTokenHash);
+    await this.usersService.updateRefreshTokenHash(savedUser.id, refreshTokenHash);
 
     return {
       ...tokens,
@@ -84,10 +84,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    const tokens = await this.generateTokens(user._id.toString(), user.email, user.role);
+    const tokens = await this.generateTokens(user.id, user.email, user.role);
 
     const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 10);
-    await this.usersService.updateRefreshTokenHash(user._id.toString(), refreshTokenHash);
+    await this.usersService.updateRefreshTokenHash(user.id, refreshTokenHash);
 
     return {
       ...tokens,
@@ -120,10 +120,10 @@ export class AuthService {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
-      const tokens = await this.generateTokens(user._id.toString(), user.email, user.role);
+      const tokens = await this.generateTokens(user.id, user.email, user.role);
 
       const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 10);
-      await this.usersService.updateRefreshTokenHash(user._id.toString(), refreshTokenHash);
+      await this.usersService.updateRefreshTokenHash(user.id, refreshTokenHash);
 
       return {
         ...tokens,
@@ -140,9 +140,9 @@ export class AuthService {
       throw new UnauthorizedException('User not found or inactive');
     }
 
-    const tokens = await this.generateTokens(user._id.toString(), user.email, user.role);
+    const tokens = await this.generateTokens(user.id, user.email, user.role);
     const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 10);
-    await this.usersService.updateRefreshTokenHash(user._id.toString(), refreshTokenHash);
+    await this.usersService.updateRefreshTokenHash(user.id, refreshTokenHash);
 
     return {
       ...tokens,

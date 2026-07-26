@@ -7,7 +7,7 @@ class EnvironmentVariables {
 
   @IsString()
   @IsNotEmpty()
-  MONGODB_URI: string;
+  DATABASE_URL: string;
 
   @IsString()
   @IsNotEmpty()

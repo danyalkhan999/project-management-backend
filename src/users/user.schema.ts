@@ -1,30 +1,17 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { pgTable, uuid, text, boolean, timestamp } from 'drizzle-orm/pg-core';
 
-export type UserDocument = User & Document;
+export const users = pgTable('users', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull(),
+  email: text('email').unique().notNull(),
+  passwordHash: text('password_hash').notNull(),
+  role: text('role').default('member').notNull(),
+  plan: text('plan').default('free').notNull(),
+  refreshTokenHash: text('refresh_token_hash'),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
 
-@Schema({ collection: 'user', timestamps: true })
-export class User {
-  @Prop({ required: true })
-  name: string;
-
-  @Prop({ required: true, unique: true, index: true })
-  email: string;
-
-  @Prop({ required: true })
-  passwordHash: string;
-
-  @Prop({ default: 'member' })
-  role: string;
-
-  @Prop({ default: 'free' })
-  plan: string;
-
-  @Prop()
-  refreshTokenHash?: string;
-
-  @Prop({ default: true })
-  isActive: boolean;
-}
-
-export const UserSchema = SchemaFactory.createForClass(User);
+export type UserSelect = typeof users.$inferSelect;
+export type UserInsert = typeof users.$inferInsert;

@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { MongooseModule } from '@nestjs/mongoose';
+import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { DbModule } from './db/db.module';
 import { validate } from './config/env.validation';
 
 @Module({
@@ -14,13 +14,7 @@ import { validate } from './config/env.validation';
       isGlobal: true,
       validate,
     }),
-    MongooseModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        uri: configService.get<string>('MONGODB_URI'),
-      }),
-    }),
+    DbModule,
     ThrottlerModule.forRoot([{
       ttl: 60000,
       limit: 10,
